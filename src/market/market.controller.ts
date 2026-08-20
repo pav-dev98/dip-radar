@@ -1,13 +1,18 @@
-import { Controller ,Get} from '@nestjs/common';
+import { Controller, Get ,Param} from '@nestjs/common';
 import { MarketService } from './market.service';
 
 @Controller('market')
 export class MarketController {
-    constructor(private readonly marketService: MarketService){
+    constructor(private readonly marketService: MarketService) {
 
     }
-    @Get('btc')
-    getLastPrice(){
-        return this.marketService.getLastPrice();
+    @Get()
+    getMarkets() {
+        return this.marketService.getTickers();
+    }
+
+    @Get(':symbol')
+    getMarket(@Param('symbol') symbol: string) {
+        return this.marketService.getTicker(symbol);
     }
 }
