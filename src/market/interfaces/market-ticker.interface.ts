@@ -6,4 +6,6 @@ export interface MarketTicker {
     low: number;
     volume: number;
     quoteVolume: number;
+
+    distanceFromLow: number;
 }

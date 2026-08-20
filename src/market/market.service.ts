@@ -35,6 +35,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
                 const changePercent = open > 0 ? ((price - open) / open) *100 : 0;
 
+                const low = Number(ticker.l);
+                const distanceFromLow = low > 0 ? ((price - low )/low) * 100 : 0;
+
                 const marketTicker: MarketTicker = {
                     symbol,
                     price: Number(ticker.c),
@@ -43,6 +46,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
                     low: Number(ticker.l),
                     volume: Number(ticker.v),
                     quoteVolume: Number(ticker.q),
+                    distanceFromLow,
                 };
 
                 this.tickers.set(symbol, marketTicker);
@@ -66,5 +70,12 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
     onModuleDestroy() {
         this.socket?.close();
+    }
+    getDipCandidates():MarketTicker[]{
+        return Array.from(this.tickers.values())
+        .filter((ticker) => ticker.changePercent <= -5)
+        .filter((ticker) => ticker.distanceFromLow <= 10)
+        .filter((ticker) => ticker.quoteVolume >= 1_000_000)
+        .sort((a, b) => a.distanceFromLow - b.distanceFromLow);
     }
 }
