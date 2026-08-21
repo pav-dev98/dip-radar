@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import WebSocket from 'ws';
 import { MarketTicker } from './interfaces/market-ticker.interface';
+import { Candle } from './interfaces/candle.interface'
 
 @Injectable()
 export class MarketService implements OnModuleInit, OnModuleDestroy {
@@ -33,10 +34,10 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
                 const price = Number(ticker.c);
                 const open = Number(ticker.o);
 
-                const changePercent = open > 0 ? ((price - open) / open) *100 : 0;
+                const changePercent = open > 0 ? ((price - open) / open) * 100 : 0;
 
                 const low = Number(ticker.l);
-                const distanceFromLow = low > 0 ? ((price - low )/low) * 100 : 0;
+                const distanceFromLow = low > 0 ? ((price - low) / low) * 100 : 0;
 
                 const marketTicker: MarketTicker = {
                     symbol,
@@ -71,11 +72,40 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     onModuleDestroy() {
         this.socket?.close();
     }
-    getDipCandidates():MarketTicker[]{
+    getDipCandidates(): MarketTicker[] {
         return Array.from(this.tickers.values())
-        .filter((ticker) => ticker.changePercent <= -5)
-        .filter((ticker) => ticker.distanceFromLow <= 10)
-        .filter((ticker) => ticker.quoteVolume >= 1_000_000)
-        .sort((a, b) => a.distanceFromLow - b.distanceFromLow);
+            .filter((ticker) => ticker.changePercent <= -5)
+            .filter((ticker) => ticker.distanceFromLow <= 10)
+            .filter((ticker) => ticker.quoteVolume >= 1_000_000)
+            .sort((a, b) => a.distanceFromLow - b.distanceFromLow);
+    }
+    async getCandles(
+        symbol: string,
+        interval = '5m',
+        limit = 10,
+    ): Promise<Candle[]> {
+        const url =
+            `https://api.binance.com/api/v3/klines` +
+            `?symbol=${symbol.toUpperCase()}` +
+            `&interval=${interval}` +
+            `&limit=${limit}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch Binance candles');
+        }
+
+        const data = await response.json();
+
+        return data.map((kline: any[]) => ({
+            openTime: kline[0],
+            open: Number(kline[1]),
+            high: Number(kline[2]),
+            low: Number(kline[3]),
+            close: Number(kline[4]),
+            volume: Number(kline[5]),
+            closeTime: kline[6],
+        }));
     }
 }
