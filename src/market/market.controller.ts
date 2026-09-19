@@ -15,6 +15,10 @@ export class MarketController {
     getDipCandidates() {
         return this.marketService.getDipCandidates();
     }
+    @Get(':symbol/rebound')
+    getRebound(@Param('symbol') symbol: string) {
+        return this.marketService.analyzeRebound(symbol);
+    }
     @Get(':symbol')
     getMarket(@Param('symbol') symbol: string) {
         return this.marketService.getTicker(symbol);

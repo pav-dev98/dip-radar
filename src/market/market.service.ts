@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import WebSocket from 'ws';
 import { MarketTicker } from './interfaces/market-ticker.interface';
 import { Candle } from './interfaces/candle.interface'
+import { ReboundAnalysis } from './interfaces/rebound-analysis.interface';
 
 @Injectable()
 export class MarketService implements OnModuleInit, OnModuleDestroy {
@@ -107,5 +108,53 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
             volume: Number(kline[5]),
             closeTime: kline[6],
         }));
+    }
+
+    async analyzeRebound(symbol: string): Promise<ReboundAnalysis> {
+        const candles = await this.getCandles(symbol, '5m', 10);
+
+        const recentLow = Math.min(
+            ...candles.map((candle) => candle.low),
+        );
+
+        const lastCandles = candles.slice(-3);
+
+        const currentPrice = lastCandles.at(-1)!.close;
+
+        const reboundPercent =
+            ((currentPrice - recentLow) / recentLow) * 100;
+
+        const greenCandles = lastCandles.filter(
+            (candle) => candle.close > candle.open,
+        ).length;
+
+        const risingCloses =
+            lastCandles[0].close < lastCandles[1].close &&
+            lastCandles[1].close < lastCandles[2].close;
+
+        let trend: ReboundAnalysis['trend'] = 'neutral';
+
+        if (
+            reboundPercent >= 1 &&
+            greenCandles >= 2 &&
+            risingCloses
+        ) {
+            trend = 'recovering';
+        } else if (
+            lastCandles[2].close < lastCandles[1].close &&
+            lastCandles[1].close < lastCandles[0].close
+        ) {
+            trend = 'falling';
+        }
+
+        return {
+            symbol: symbol.toUpperCase(),
+            recentLow,
+            currentPrice,
+            reboundPercent,
+            greenCandles,
+            risingCloses,
+            trend,
+        };
     }
 }
